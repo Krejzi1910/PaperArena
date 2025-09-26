@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DamnBruh Betting</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="welcome-message">
+                <span class="snake-icon"></span> Welcome!
+            </div>
+            <button class="btn btn-login">Login</button>
+        </header>
+
+        <div class="logo">
+            <h1>PAPER ARENA</h1>
+            <p>SKILL-BASED BETTING</p>
+        </div>
+
+        <main class="main-grid">
+            <div class="grid-item panel leaderboard">
+                <div class="panel-header">
+                    <h2>🏆 Leaderboard</h2>
+                    <span class="live-indicator">● Live</span>
+                </div>
+                <ul>
+                    <li><span>1. Quantum</span> <span>$13,118.43</span></li>
+                    <li><span>2. Mr-1221z</span> <span>$11,181.83</span></li>
+                    <li><span>3. IRS</span> <span>$7,492.52</span></li>
+                </ul>
+                <button class="btn btn-outline">View Full Leaderboard</button>
+            </div>
+
+            <div class="grid-item panel join-game">
+                <div class="join-game-header">
+                    <span class="question-mark">?</span>
+                    <input type="text" placeholder="Login to set your name">
+                    <button class="edit-name-btn">✎</button>
+                </div>
+                <div class="bet-amounts">
+                    <button class="btn btn-primary">$1</button>
+                    <button class="btn btn-primary-dark">$5</button>
+                    <button class="btn btn-primary-dark">$20</button>
+                </div>
+                <button class="btn btn-join">► JOIN GAME</button>
+                <div class="game-info">
+                    <div class="game-buttons">
+                        <button class="btn btn-outline-small">🌐 EU</button>
+                        <button class="btn btn-outline-small">≡ Browse Lobbies</button>
+                    </div>
+                    <div class="game-stats">
+                        <div>
+                            <span class="info-value">$444,485</span>
+                            <span class="info-label">Global Player Winnings</span>
+                        </div>
+                        <div>
+                            <span class="info-value">31</span>
+                            <span class="info-label">Players In Game</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-item panel wallet">
+                <div class="panel-header">
+                    <h2>💵 Wallet</h2>
+                    <div>
+                        <span>❐ Copy Address</span>
+                        <span>⟳ Refresh Balance</span>
+                    </div>
+                </div>
+                <div class="balance">
+                    <p class="amount">$0.00</p>
+                    <p class="currency">0.0000 SOL</p>
+                </div>
+                <div class="wallet-actions">
+                    <button class="btn btn-success-outline">Add Funds</button>
+                    <button class="btn btn-danger-outline">Cash Out</button>
+                </div>
+            </div>
+
+            <div class="grid-item panel friends">
+                <div class="panel-header">
+                    <h2>👥 Friends</h2>
+                    <div>
+                        <span>⟳ Refresh</span>
+                        <span>0 playing</span>
+                    </div>
+                </div>
+                <div class="friends-body">
+                    <div class="no-friends-icon">👤</div>
+                    <p>No friends... add some!</p>
+                </div>
+                <div class="friends-actions">
+                    <button class="btn btn-discord">Join Discord!</button>
+                    <button class="btn btn-outline">Add Friends</button>
+                </div>
+            </div>
+
+            <div class="grid-item panel affiliate">
+                 <button class="btn btn-primary">Manage Affiliate</button>
+            </div>
+
+            <div class="grid-item panel customize">
+                <div class="panel-header">
+                    <h2>👕 Customize</h2>
+                </div>
+                <div class="customize-body">
+                    <div class="worm-placeholder"></div>
+                </div>
+                <button class="btn btn-outline">Change Appearance</button>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
