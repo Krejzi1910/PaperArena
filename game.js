@@ -1,17 +1,32 @@
-class PaperIOGame {
+class SmoothPaperIOGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.gridSize = 10;
-        this.mapWidth = this.canvas.width / this.gridSize;
-        this.mapHeight = this.canvas.height / this.gridSize;
         
+        // Game settings
+        this.playerSpeed = 120; // pixels per second
+        this.aiSpeed = 100;
+        this.playerSize = 8;
+        this.trailWidth = 4;
+        
+        // Game state
         this.players = [];
         this.gameRunning = false;
         this.gameStartTime = 0;
         this.gameTimeLimit = 180000; // 3 minutes
+        this.lastFrameTime = 0;
         
-        this.colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
+        // Colors for players
+        this.colors = [
+            '#FF6B6B', // Red - Human player
+            '#4ECDC4', // Teal
+            '#45B7D1', // Blue  
+            '#96CEB4', // Green
+            '#FFEAA7', // Yellow
+            '#DDA0DD', // Plum
+            '#98D8C8', // Mint
+            '#F7DC6F'  // Light Yellow
+        ];
         
         this.initializeGame();
         this.setupEventListeners();
@@ -19,15 +34,14 @@ class PaperIOGame {
     }
 
     initializeGame() {
-        this.grid = Array(this.mapHeight).fill().map(() => Array(this.mapWidth).fill(0));
         this.players = [];
         
-        // Create 4 players
+        // Create players with starting positions in corners
         const startPositions = [
-            { x: 5, y: 5 },
-            { x: this.mapWidth - 6, y: 5 },
-            { x: 5, y: this.mapHeight - 6 },
-            { x: this.mapWidth - 6, y: this.mapHeight - 6 }
+            { x: 100, y: 100 },     // Top-left (Human)
+            { x: 700, y: 100 },     // Top-right
+            { x: 100, y: 500 },     // Bottom-left
+            { x: 700, y: 500 }      // Bottom-right
         ];
 
         for (let i = 0; i < 4; i++) {
@@ -38,93 +52,137 @@ class PaperIOGame {
                 direction: { x: 0, y: 0 },
                 color: this.colors[i],
                 trail: [],
-                territory: new Set(),
+                territory: [],
                 alive: true,
-                isHuman: i === 0, // First player is human
-                lastMoveTime: 0,
-                moveInterval: i === 0 ? 100 : 150 + Math.random() * 100 // AI moves slightly slower
+                isHuman: i === 0,
+                speed: i === 0 ? this.playerSpeed : this.aiSpeed,
+                lastDirectionChange: 0,
+                aiTarget: null
             };
 
-            // Initialize starting territory (3x3 square)
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    const nx = player.x + dx;
-                    const ny = player.y + dy;
-                    if (this.isValidPosition(nx, ny)) {
-                        this.grid[ny][nx] = player.id;
-                        player.territory.add(`${nx},${ny}`);
-                    }
-                }
-            }
-
+            // Create initial territory (circle around starting position)
+            this.createInitialTerritory(player);
             this.players.push(player);
         }
 
         this.gameRunning = true;
         this.gameStartTime = Date.now();
+        this.lastFrameTime = Date.now();
         this.updateScores();
     }
 
-    setupEventListeners() {
-        document.addEventListener('keydown', (e) => {
-            if (!this.gameRunning) return;
-            
-            const player = this.players[0]; // Human player
-            if (!player.alive) return;
+    createInitialTerritory(player) {
+        const radius = 40;
+        const points = [];
+        const segments = 16;
+        
+        for (let i = 0; i < segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            points.push({
+                x: player.x + Math.cos(angle) * radius,
+                y: player.y + Math.sin(angle) * radius
+            });
+        }
+        
+        player.territory = [points];
+    }
 
-            let newDirection = { ...player.direction };
-            
-            switch (e.key) {
-                case 'ArrowUp':
-                    if (player.direction.y !== 1) newDirection = { x: 0, y: -1 };
-                    break;
-                case 'ArrowDown':
-                    if (player.direction.y !== -1) newDirection = { x: 0, y: 1 };
-                    break;
-                case 'ArrowLeft':
-                    if (player.direction.x !== 1) newDirection = { x: -1, y: 0 };
-                    break;
-                case 'ArrowRight':
-                    if (player.direction.x !== -1) newDirection = { x: 1, y: 0 };
-                    break;
-            }
-            
-            player.direction = newDirection;
+    setupEventListeners() {
+        const keys = {};
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            this.handleInput(keys);
             e.preventDefault();
         });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+    }
+
+    handleInput(keys) {
+        if (!this.gameRunning) return;
+        
+        const player = this.players[0]; // Human player
+        if (!player.alive) return;
+
+        let newDirection = { ...player.direction };
+        
+        if (keys['ArrowUp'] && player.direction.y !== 1) {
+            newDirection = { x: 0, y: -1 };
+        } else if (keys['ArrowDown'] && player.direction.y !== -1) {
+            newDirection = { x: 0, y: 1 };
+        } else if (keys['ArrowLeft'] && player.direction.x !== 1) {
+            newDirection = { x: -1, y: 0 };
+        } else if (keys['ArrowRight'] && player.direction.x !== -1) {
+            newDirection = { x: 1, y: 0 };
+        }
+        
+        player.direction = newDirection;
     }
 
     gameLoop() {
         const currentTime = Date.now();
+        const deltaTime = (currentTime - this.lastFrameTime) / 1000; // Convert to seconds
+        this.lastFrameTime = currentTime;
         
         if (this.gameRunning) {
-            this.updatePlayers(currentTime);
+            this.updatePlayers(deltaTime);
+            this.checkCollisions();
+            this.updateAI(currentTime);
             this.checkGameEnd();
+            this.updateTimer();
         }
         
         this.render();
         requestAnimationFrame(() => this.gameLoop());
     }
 
-    updatePlayers(currentTime) {
+    updatePlayers(deltaTime) {
         for (const player of this.players) {
-            if (!player.alive) continue;
+            if (!player.alive || (player.direction.x === 0 && player.direction.y === 0)) continue;
             
-            if (currentTime - player.lastMoveTime >= player.moveInterval) {
-                if (!player.isHuman) {
-                    this.updateAI(player);
+            const oldX = player.x;
+            const oldY = player.y;
+            
+            // Update position based on direction and speed
+            player.x += player.direction.x * player.speed * deltaTime;
+            player.y += player.direction.y * player.speed * deltaTime;
+            
+            // Check if player is outside their territory
+            if (!this.isInTerritory(player, player.x, player.y)) {
+                // Add to trail if we moved significantly
+                const distance = Math.sqrt((player.x - oldX) ** 2 + (player.y - oldY) ** 2);
+                if (distance > 2) {
+                    player.trail.push({ x: oldX, y: oldY });
                 }
-                
-                if (player.direction.x !== 0 || player.direction.y !== 0) {
-                    this.movePlayer(player);
-                    player.lastMoveTime = currentTime;
-                }
+            } else if (player.trail.length > 0) {
+                // Player returned to territory, close the trail
+                this.closeTrail(player);
             }
         }
     }
 
-    updateAI(player) {
-        // Simple AI logic
+    updateAI(currentTime) {
+        for (const player of this.players) {
+            if (!player.alive || player.isHuman) continue;
+            
+            // Change direction occasionally or when needed
+            if (currentTime - player.lastDirectionChange > 1000 + Math.random() * 2000) {
+                this.updateAIDirection(player);
+                player.lastDirectionChange = currentTime;
+            }
+            
+            // Check if AI needs to avoid danger
+            if (this.isAIInDanger(player)) {
+                this.updateAIDirection(player);
+                player.lastDirectionChange = currentTime;
+            }
+        }
+    }
+
+    updateAIDirection(player) {
         const directions = [
             { x: 0, y: -1 }, // up
             { x: 0, y: 1 },  // down
@@ -132,174 +190,256 @@ class PaperIOGame {
             { x: 1, y: 0 }   // right
         ];
 
-        // If player has no direction, pick a random one
-        if (player.direction.x === 0 && player.direction.y === 0) {
-            player.direction = directions[Math.floor(Math.random() * directions.length)];
-            return;
-        }
-
-        // Check if current direction is safe
-        const nextX = player.x + player.direction.x;
-        const nextY = player.y + player.direction.y;
-        
-        if (this.isValidMove(player, nextX, nextY)) {
-            // Continue in current direction most of the time
-            if (Math.random() < 0.9) return;
-        }
-
-        // Find safe directions
+        // Filter safe directions
         const safeDirections = directions.filter(dir => {
-            const nx = player.x + dir.x;
-            const ny = player.y + dir.y;
-            return this.isValidMove(player, nx, ny) && 
-                   !(dir.x === -player.direction.x && dir.y === -player.direction.y); // Don't reverse
+            // Don't reverse direction
+            if (dir.x === -player.direction.x && dir.y === -player.direction.y) return false;
+            
+            // Check if this direction leads to safety
+            const testX = player.x + dir.x * 50;
+            const testY = player.y + dir.y * 50;
+            
+            return this.isPositionSafe(player, testX, testY);
         });
 
         if (safeDirections.length > 0) {
-            player.direction = safeDirections[Math.floor(Math.random() * safeDirections.length)];
+            // Prefer directions that lead toward unclaimed territory
+            const bestDirection = this.findBestAIDirection(player, safeDirections);
+            player.direction = bestDirection || safeDirections[Math.floor(Math.random() * safeDirections.length)];
+        } else if (player.trail.length === 0) {
+            // If no safe direction and no trail, pick any direction
+            player.direction = directions[Math.floor(Math.random() * directions.length)];
         }
     }
 
-    movePlayer(player) {
-        const newX = player.x + player.direction.x;
-        const newY = player.y + player.direction.y;
-
-        if (!this.isValidMove(player, newX, newY)) {
-            this.eliminatePlayer(player);
-            return;
-        }
-
-        // Add current position to trail if outside territory
-        if (!player.territory.has(`${player.x},${player.y}`)) {
-            player.trail.push({ x: player.x, y: player.y });
-        }
-
-        player.x = newX;
-        player.y = newY;
-
-        // Check if player returned to their territory
-        if (player.territory.has(`${newX},${newY}`) && player.trail.length > 0) {
-            this.claimTerritory(player);
-        }
-    }
-
-    isValidMove(player, x, y) {
-        // Check boundaries
-        if (x < 0 || x >= this.mapWidth || y < 0 || y >= this.mapHeight) {
-            return false;
-        }
-
-        // Check if position is occupied by another player's territory
-        const cellOwner = this.grid[y][x];
-        if (cellOwner !== 0 && cellOwner !== player.id) {
-            return false;
-        }
-
-        // Check if player would hit their own trail
-        if (player.trail.some(pos => pos.x === x && pos.y === y)) {
-            return false;
-        }
-
-        // Check if player would hit another player's trail
-        for (const otherPlayer of this.players) {
-            if (otherPlayer.id !== player.id && otherPlayer.alive) {
-                if (otherPlayer.trail.some(pos => pos.x === x && pos.y === y)) {
-                    return false;
-                }
+    findBestAIDirection(player, directions) {
+        let bestDirection = null;
+        let bestScore = -1;
+        
+        for (const dir of directions) {
+            const testX = player.x + dir.x * 100;
+            const testY = player.y + dir.y * 100;
+            
+            // Score based on distance from other players and potential territory gain
+            let score = 0;
+            
+            // Prefer directions away from other players
+            for (const otherPlayer of this.players) {
+                if (otherPlayer.id === player.id) continue;
+                const distance = Math.sqrt((testX - otherPlayer.x) ** 2 + (testY - otherPlayer.y) ** 2);
+                score += Math.min(distance / 100, 1);
+            }
+            
+            // Prefer directions toward center if near edges
+            const centerX = this.canvas.width / 2;
+            const centerY = this.canvas.height / 2;
+            const distanceToCenter = Math.sqrt((testX - centerX) ** 2 + (testY - centerY) ** 2);
+            if (testX < 50 || testX > this.canvas.width - 50 || testY < 50 || testY > this.canvas.height - 50) {
+                score += (1 - distanceToCenter / 400);
+            }
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestDirection = dir;
             }
         }
+        
+        return bestDirection;
+    }
 
+    isAIInDanger(player) {
+        const lookAhead = 30;
+        const testX = player.x + player.direction.x * lookAhead;
+        const testY = player.y + player.direction.y * lookAhead;
+        
+        return !this.isPositionSafe(player, testX, testY);
+    }
+
+    isPositionSafe(player, x, y) {
+        // Check boundaries
+        if (x < 10 || x > this.canvas.width - 10 || y < 10 || y > this.canvas.height - 10) {
+            return false;
+        }
+        
+        // Check collision with other players' trails
+        for (const otherPlayer of this.players) {
+            if (otherPlayer.id === player.id || !otherPlayer.alive) continue;
+            
+            if (this.isPointNearTrail(x, y, otherPlayer.trail, 15)) {
+                return false;
+            }
+        }
+        
+        // Check collision with own trail
+        if (this.isPointNearTrail(x, y, player.trail, 10)) {
+            return false;
+        }
+        
         return true;
     }
 
-    claimTerritory(player) {
-        if (player.trail.length === 0) return;
-
-        // Add trail to territory
-        for (const pos of player.trail) {
-            player.territory.add(`${pos.x},${pos.y}`);
-            this.grid[pos.y][pos.x] = player.id;
-        }
-
-        // Flood fill to claim enclosed area
-        this.floodFillTerritory(player);
-        
-        player.trail = [];
-        this.updateScores();
-    }
-
-    floodFillTerritory(player) {
-        // Simple flood fill algorithm to claim enclosed areas
-        const visited = new Set();
-        const toVisit = [];
-
-        // Start flood fill from edges to find unclaimed areas
-        for (let x = 0; x < this.mapWidth; x++) {
-            for (let y = 0; y < this.mapHeight; y++) {
-                if (this.grid[y][x] === 0 && !visited.has(`${x},${y}`)) {
-                    const region = this.getConnectedRegion(x, y, visited);
-                    
-                    // If region doesn't touch the border, it's enclosed
-                    if (!this.regionTouchesBorder(region)) {
-                        for (const pos of region) {
-                            const [px, py] = pos.split(',').map(Number);
-                            this.grid[py][px] = player.id;
-                            player.territory.add(pos);
-                        }
-                    }
+    checkCollisions() {
+        for (const player of this.players) {
+            if (!player.alive) continue;
+            
+            // Check boundary collision
+            if (player.x < 0 || player.x > this.canvas.width || 
+                player.y < 0 || player.y > this.canvas.height) {
+                this.eliminatePlayer(player);
+                continue;
+            }
+            
+            // Check collision with other players' trails
+            for (const otherPlayer of this.players) {
+                if (otherPlayer.id === player.id || !otherPlayer.alive) continue;
+                
+                if (this.isPointNearTrail(player.x, player.y, otherPlayer.trail, this.playerSize)) {
+                    this.eliminatePlayer(player);
+                    break;
+                }
+            }
+            
+            // Check collision with own trail (but not the most recent part)
+            if (player.trail.length > 10) {
+                const checkTrail = player.trail.slice(0, -5);
+                if (this.isPointNearTrail(player.x, player.y, checkTrail, this.playerSize)) {
+                    this.eliminatePlayer(player);
                 }
             }
         }
     }
 
-    getConnectedRegion(startX, startY, visited) {
-        const region = new Set();
-        const stack = [{ x: startX, y: startY }];
-
-        while (stack.length > 0) {
-            const { x, y } = stack.pop();
-            const key = `${x},${y}`;
-
-            if (visited.has(key) || region.has(key)) continue;
-            if (x < 0 || x >= this.mapWidth || y < 0 || y >= this.mapHeight) continue;
-            if (this.grid[y][x] !== 0) continue;
-
-            region.add(key);
-            visited.add(key);
-
-            stack.push({ x: x + 1, y });
-            stack.push({ x: x - 1, y });
-            stack.push({ x, y: y + 1 });
-            stack.push({ x, y: y - 1 });
-        }
-
-        return region;
-    }
-
-    regionTouchesBorder(region) {
-        for (const pos of region) {
-            const [x, y] = pos.split(',').map(Number);
-            if (x === 0 || x === this.mapWidth - 1 || y === 0 || y === this.mapHeight - 1) {
+    isPointNearTrail(x, y, trail, threshold) {
+        for (let i = 0; i < trail.length - 1; i++) {
+            const distance = this.distanceToLineSegment(x, y, trail[i], trail[i + 1]);
+            if (distance < threshold) {
                 return true;
             }
         }
         return false;
     }
 
+    distanceToLineSegment(px, py, p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        
+        if (length === 0) return Math.sqrt((px - p1.x) ** 2 + (py - p1.y) ** 2);
+        
+        const t = Math.max(0, Math.min(1, ((px - p1.x) * dx + (py - p1.y) * dy) / (length * length)));
+        const projection = { x: p1.x + t * dx, y: p1.y + t * dy };
+        
+        return Math.sqrt((px - projection.x) ** 2 + (py - projection.y) ** 2);
+    }
+
+    isInTerritory(player, x, y) {
+        for (const territory of player.territory) {
+            if (this.isPointInPolygon(x, y, territory)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    isPointInPolygon(x, y, polygon) {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            if (((polygon[i].y > y) !== (polygon[j].y > y)) &&
+                (x < (polygon[j].x - polygon[i].x) * (y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    closeTrail(player) {
+        if (player.trail.length < 3) {
+            player.trail = [];
+            return;
+        }
+        
+        // Add current position to complete the trail
+        player.trail.push({ x: player.x, y: player.y });
+        
+        // Find the connection point in existing territory
+        const connectionPoint = this.findTerritoryConnection(player);
+        if (connectionPoint) {
+            // Create new territory from the trail
+            const newTerritory = [...player.trail];
+            player.territory.push(newTerritory);
+        }
+        
+        player.trail = [];
+        this.updateScores();
+    }
+
+    findTerritoryConnection(player) {
+        // Simplified: just return the current position as connection point
+        return { x: player.x, y: player.y };
+    }
+
     eliminatePlayer(player) {
         player.alive = false;
         player.trail = [];
-        
-        // Check if any other player's trail intersects with eliminated player's trail
-        for (const otherPlayer of this.players) {
-            if (otherPlayer.id !== player.id && otherPlayer.alive) {
-                for (const trailPos of player.trail) {
-                    if (otherPlayer.trail.some(pos => pos.x === trailPos.x && pos.y === trailPos.y)) {
-                        this.eliminatePlayer(otherPlayer);
-                    }
-                }
-            }
+        player.direction = { x: 0, y: 0 };
+        this.updateScores();
+    }
+
+    calculateTerritoryArea(territories) {
+        let totalArea = 0;
+        for (const territory of territories) {
+            totalArea += this.polygonArea(territory);
         }
+        return totalArea;
+    }
+
+    polygonArea(polygon) {
+        let area = 0;
+        for (let i = 0; i < polygon.length; i++) {
+            const j = (i + 1) % polygon.length;
+            area += polygon[i].x * polygon[j].y;
+            area -= polygon[j].x * polygon[i].y;
+        }
+        return Math.abs(area) / 2;
+    }
+
+    updateScores() {
+        const scoresDiv = document.getElementById('scores');
+        const totalArea = this.canvas.width * this.canvas.height;
+        
+        let html = '';
+        for (const player of this.players) {
+            const area = this.calculateTerritoryArea(player.territory);
+            const percentage = ((area / totalArea) * 100).toFixed(1);
+            const status = player.alive ? 'alive' : 'eliminated';
+            const statusText = player.alive ? 'Alive' : 'Eliminated';
+            
+            html += `
+                <div class="player-score" style="background-color: ${player.color}15; border-left: 4px solid ${player.color}">
+                    <div class="player-info">
+                        <div class="player-color" style="background-color: ${player.color}"></div>
+                        <div>
+                            <div>Player ${player.id} ${player.isHuman ? '(You)' : ''}</div>
+                        </div>
+                    </div>
+                    <div class="player-stats">
+                        <div class="percentage">${percentage}%</div>
+                        <div class="status ${status}">${statusText}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        scoresDiv.innerHTML = html;
+    }
+
+    updateTimer() {
+        const timeElapsed = Date.now() - this.gameStartTime;
+        const timeRemaining = Math.max(0, this.gameTimeLimit - timeElapsed);
+        const minutes = Math.floor(timeRemaining / 60000);
+        const seconds = Math.floor((timeRemaining % 60000) / 1000);
+        
+        document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     checkGameEnd() {
@@ -314,119 +454,111 @@ class PaperIOGame {
 
     showGameOver() {
         const gameOverDiv = document.getElementById('gameOver');
-        const gameOverText = document.getElementById('gameOverText');
+        const gameOverTitle = document.getElementById('gameOverTitle');
+        const finalScores = document.getElementById('finalScores');
         
-        const alivePlayers = this.players.filter(p => p.alive);
-        const sortedPlayers = this.players.sort((a, b) => b.territory.size - a.territory.size);
+        const totalArea = this.canvas.width * this.canvas.height;
+        const sortedPlayers = [...this.players].sort((a, b) => {
+            const areaA = this.calculateTerritoryArea(a.territory);
+            const areaB = this.calculateTerritoryArea(b.territory);
+            return areaB - areaA;
+        });
         
-        let message = 'Game Over!\n\nFinal Scores:\n';
+        const winner = sortedPlayers[0];
+        const isHumanWinner = winner.isHuman;
+        
+        gameOverTitle.textContent = isHumanWinner ? '🎉 You Won!' : '💀 Game Over!';
+        
+        let scoresHtml = '<h3>Final Rankings:</h3>';
         sortedPlayers.forEach((player, index) => {
-            const percentage = ((player.territory.size / (this.mapWidth * this.mapHeight)) * 100).toFixed(1);
-            message += `${index + 1}. Player ${player.id}: ${percentage}%\n`;
+            const area = this.calculateTerritoryArea(player.territory);
+            const percentage = ((area / totalArea) * 100).toFixed(1);
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '  ';
+            
+            scoresHtml += `
+                <div style="margin: 8px 0; color: ${player.color};">
+                    ${medal} ${index + 1}. Player ${player.id} ${player.isHuman ? '(You)' : ''}: ${percentage}%
+                </div>
+            `;
         });
 
-        gameOverText.innerHTML = message.replace(/\n/g, '<br>');
+        finalScores.innerHTML = scoresHtml;
         gameOverDiv.style.display = 'block';
     }
 
-    updateScores() {
-        const scoresDiv = document.getElementById('scores');
-        const totalCells = this.mapWidth * this.mapHeight;
-        
-        let html = '';
-        for (const player of this.players) {
-            const percentage = ((player.territory.size / totalCells) * 100).toFixed(1);
-            const status = player.alive ? 'Alive' : 'Eliminated';
-            
-            html += `
-                <div class="player-score" style="background-color: ${player.color}20; border-left: 4px solid ${player.color}">
-                    <div style="display: flex; align-items: center;">
-                        <div class="player-color" style="background-color: ${player.color}"></div>
-                        Player ${player.id} ${player.isHuman ? '(You)' : ''}
-                    </div>
-                    <div>
-                        <div>${percentage}%</div>
-                        <div style="font-size: 12px; color: ${player.alive ? '#4CAF50' : '#f44336'}">${status}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        scoresDiv.innerHTML = html;
-    }
-
     render() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Draw grid
-        this.ctx.strokeStyle = '#333';
-        this.ctx.lineWidth = 1;
-        for (let x = 0; x <= this.mapWidth; x++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x * this.gridSize, 0);
-            this.ctx.lineTo(x * this.gridSize, this.canvas.height);
-            this.ctx.stroke();
-        }
-        for (let y = 0; y <= this.mapHeight; y++) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y * this.gridSize);
-            this.ctx.lineTo(this.canvas.width, y * this.gridSize);
-            this.ctx.stroke();
-        }
-
+        // Clear canvas
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
         // Draw territories
-        for (let y = 0; y < this.mapHeight; y++) {
-            for (let x = 0; x < this.mapWidth; x++) {
-                const owner = this.grid[y][x];
-                if (owner > 0) {
-                    const player = this.players[owner - 1];
-                    this.ctx.fillStyle = player.color + '80'; // Semi-transparent
-                    this.ctx.fillRect(x * this.gridSize, y * this.gridSize, this.gridSize, this.gridSize);
+        for (const player of this.players) {
+            this.ctx.fillStyle = player.color + '40'; // Semi-transparent
+            this.ctx.strokeStyle = player.color;
+            this.ctx.lineWidth = 2;
+            
+            for (const territory of player.territory) {
+                if (territory.length > 2) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(territory[0].x, territory[0].y);
+                    for (let i = 1; i < territory.length; i++) {
+                        this.ctx.lineTo(territory[i].x, territory[i].y);
+                    }
+                    this.ctx.closePath();
+                    this.ctx.fill();
+                    this.ctx.stroke();
                 }
             }
         }
-
+        
         // Draw trails
         for (const player of this.players) {
-            if (!player.alive) continue;
+            if (!player.alive || player.trail.length < 2) continue;
             
-            this.ctx.fillStyle = player.color;
-            for (const pos of player.trail) {
-                this.ctx.fillRect(pos.x * this.gridSize + 2, pos.y * this.gridSize + 2, 
-                                this.gridSize - 4, this.gridSize - 4);
+            this.ctx.strokeStyle = player.color;
+            this.ctx.lineWidth = this.trailWidth;
+            this.ctx.lineCap = 'round';
+            this.ctx.lineJoin = 'round';
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(player.trail[0].x, player.trail[0].y);
+            for (let i = 1; i < player.trail.length; i++) {
+                this.ctx.lineTo(player.trail[i].x, player.trail[i].y);
             }
+            // Connect to current position
+            if (player.trail.length > 0) {
+                this.ctx.lineTo(player.x, player.y);
+            }
+            this.ctx.stroke();
         }
-
+        
         // Draw players
         for (const player of this.players) {
             if (!player.alive) continue;
             
+            // Player body
             this.ctx.fillStyle = player.color;
-            this.ctx.fillRect(player.x * this.gridSize + 1, player.y * this.gridSize + 1, 
-                            this.gridSize - 2, this.gridSize - 2);
+            this.ctx.beginPath();
+            this.ctx.arc(player.x, player.y, this.playerSize, 0, Math.PI * 2);
+            this.ctx.fill();
             
-            // Draw player border
+            // Player border
             this.ctx.strokeStyle = '#fff';
             this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(player.x * this.gridSize + 1, player.y * this.gridSize + 1, 
-                              this.gridSize - 2, this.gridSize - 2);
-        }
-
-        // Draw time remaining
-        if (this.gameRunning) {
-            const timeElapsed = Date.now() - this.gameStartTime;
-            const timeRemaining = Math.max(0, this.gameTimeLimit - timeElapsed);
-            const minutes = Math.floor(timeRemaining / 60000);
-            const seconds = Math.floor((timeRemaining % 60000) / 1000);
+            this.ctx.stroke();
             
-            this.ctx.fillStyle = '#fff';
-            this.ctx.font = '20px Arial';
-            this.ctx.fillText(`Time: ${minutes}:${seconds.toString().padStart(2, '0')}`, 10, 30);
+            // Direction indicator
+            if (player.direction.x !== 0 || player.direction.y !== 0) {
+                this.ctx.fillStyle = '#fff';
+                this.ctx.beginPath();
+                this.ctx.arc(
+                    player.x + player.direction.x * (this.playerSize - 2),
+                    player.y + player.direction.y * (this.playerSize - 2),
+                    2, 0, Math.PI * 2
+                );
+                this.ctx.fill();
+            }
         }
-    }
-
-    isValidPosition(x, y) {
-        return x >= 0 && x < this.mapWidth && y >= 0 && y < this.mapHeight;
     }
 
     restart() {
@@ -436,4 +568,4 @@ class PaperIOGame {
 }
 
 // Start the game
-const game = new PaperIOGame();
+const game = new SmoothPaperIOGame();

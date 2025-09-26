@@ -3,56 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paper.io Arena</title>
+    <title>Paper.io Arena - Smooth Movement</title>
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background: #1a1a1a;
             color: white;
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
         }
 
         .game-container {
             display: flex;
             gap: 20px;
-            align-items: flex-start;
+            align-items: center;
         }
 
         canvas {
             border: 3px solid #333;
             background: #000;
+            border-radius: 8px;
         }
 
         .ui-panel {
             background: #2a2a2a;
             padding: 20px;
             border-radius: 10px;
-            min-width: 200px;
+            min-width: 250px;
+            max-height: 600px;
+            overflow-y: auto;
         }
 
         .player-score {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
+            margin: 8px 0;
+            padding: 12px;
+            border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.3s ease;
         }
 
         .player-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-            margin-right: 10px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
         }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .player-stats {
+            text-align: right;
+        }
+
+        .percentage {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .status {
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .alive { color: #4CAF50; }
+        .eliminated { color: #f44336; }
 
         .controls {
             margin-top: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 8px;
+        }
+
+        .controls h4 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+
+        .controls p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .game-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #333;
+            border-radius: 8px;
             text-align: center;
+        }
+
+        .timer {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f0b90b;
+            margin-bottom: 5px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #45a049;
         }
 
         .game-over {
@@ -60,50 +135,56 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 30px;
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 15px;
             text-align: center;
             display: none;
+            border: 2px solid #4CAF50;
+            min-width: 300px;
         }
 
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
+        .game-over h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
         }
 
-        button:hover {
-            background: #45a049;
+        .final-scores {
+            text-align: left;
+            margin: 20px 0;
+            font-family: monospace;
         }
     </style>
 </head>
 <body>
-    <h1>Paper.io Arena</h1>
-    
     <div class="game-container">
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div class="ui-panel">
-            <h3>Scores</h3>
+            <h3>🏆 Live Scores</h3>
             <div id="scores"></div>
             
-            <div class="controls">
-                <h4>Controls</h4>
-                <p>Arrow Keys: Move</p>
-                <p>Stay in your territory to be safe!</p>
-                <button onclick="game.restart()">Restart Game</button>
+            <div class="game-info">
+                <div class="timer" id="timer">3:00</div>
+                <div style="font-size: 12px; color: #ccc;">Time Remaining</div>
             </div>
+            
+            <div class="controls">
+                <h4>🎮 Controls</h4>
+                <p>↑ ↓ ← → Arrow Keys: Move</p>
+                <p>🏠 Stay in territory to be safe</p>
+                <p>🎯 Close trails to capture area</p>
+                <p>⚠️ Avoid enemy trails!</p>
+            </div>
+            
+            <button onclick="game.restart()">🔄 Restart Game</button>
         </div>
     </div>
 
     <div class="game-over" id="gameOver">
-        <h2 id="gameOverText">Game Over!</h2>
-        <button onclick="game.restart()">Play Again</button>
+        <h2 id="gameOverTitle">Game Over!</h2>
+        <div class="final-scores" id="finalScores"></div>
+        <button onclick="game.restart()">🎮 Play Again</button>
     </div>
 
     <script src="game.js"></script>
