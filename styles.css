@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
 
 body {
-    background-color: #1a1a1a;
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
+    min-height: 100vh;
     color: #ffffff;
     font-family: 'Poppins', sans-serif;
     margin: 0;
-    background-image: url('https://www.transparenttextures.com/patterns/hexabump.png');
-    background-repeat: repeat;
+    background-attachment: fixed;
 }
 
 .container {
@@ -25,12 +25,17 @@ header {
 .welcome-message {
     font-size: 1.2em;
     font-weight: bold;
+    color: #ffffff;
+}
+
+.bruh-text {
     color: #f0b90b;
 }
 
 .snake-icon {
     font-size: 1.5em;
     margin-right: 10px;
+    filter: drop-shadow(0 0 10px rgba(240, 185, 11, 0.5));
 }
 
 .btn {
@@ -77,12 +82,18 @@ header {
 }
 
 .logo h1 {
-    font-size: 4em;
+    font-size: 4.5em;
     margin: 0;
-    color: #f0b90b;
+    color: #ffffff;
     font-style: italic;
     font-family: 'Impact', 'Arial Black', sans-serif;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(240, 185, 11, 0.3);
+}
+
+.bruh-highlight {
+    color: #f0b90b;
+    text-shadow: 0 0 30px rgba(240, 185, 11, 0.8);
 }
 
 .logo p {
@@ -93,19 +104,21 @@ header {
 
 .main-grid {
     display: grid;
-    grid-template-columns: repeat(3, 350px);
+    grid-template-columns: 320px 380px 320px;
     justify-content: center;
     gap: 20px;
     align-items: start;
 }
 
 .grid-item {
-    background-color: #1F2124;
+    background: rgba(31, 33, 36, 0.95);
+    backdrop-filter: blur(10px);
     border-radius: 10px;
     padding: 20px;
-    border: 1px solid #3a3a3a;
+    border: 1px solid rgba(58, 58, 58, 0.5);
     display: flex;
     flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .panel-header {
@@ -121,7 +134,12 @@ header {
 }
 
 .live-indicator {
-    color: #2ecc71;
+    background-color: #2ecc71;
+    color: #ffffff;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
 }
 
 .leaderboard ul {
@@ -137,16 +155,18 @@ header {
 }
 
 .btn-outline {
-    background-color: #1F2124;
-    border: 2px solid #aaa;
-    color: #bdc3c7;
+    background: rgba(31, 33, 36, 0.8);
+    border: 2px solid rgba(170, 170, 170, 0.3);
+    color: #ffffff;
     width: 100%;
+    backdrop-filter: blur(5px);
 }
 
 
 .btn-outline:hover {
-    background-color: #3c3f44;
-    border-color: #555;
+    background: rgba(60, 63, 68, 0.9);
+    border-color: rgba(85, 85, 85, 0.5);
+    transform: translateY(-1px);
 }
 
 .friends-body {
@@ -257,15 +277,17 @@ header {
 
 
 .btn-primary-dark {
-    background-color: #1F2124;
+    background: rgba(31, 33, 36, 0.8);
     border: 2px solid #f0b90b;
     color: #f0b90b;
     flex-grow: 1;
+    backdrop-filter: blur(5px);
 }
 
 
 .btn-primary-dark:hover {
-    background-color: #3c3f44;
+    background: rgba(60, 63, 68, 0.9);
+    transform: translateY(-1px);
 }
 
 .btn-join {
@@ -307,12 +329,13 @@ header {
 }
 
 .btn-outline-small {
-    background-color: #2b2d31;
-    border: 2px solid #aaa;
+    background: rgba(43, 45, 49, 0.8);
+    border: 2px solid rgba(170, 170, 170, 0.3);
     color: #ffffff;
     padding: 5px 10px;
     border-radius: 5px;
     width: 48%;
+    backdrop-filter: blur(5px);
 }
 
 .info-left {
@@ -321,7 +344,8 @@ header {
 }
 
 .btn-outline-small:hover {
-    background-color: #3c3f44;
+    background: rgba(60, 63, 68, 0.9);
+    transform: translateY(-1px);
 }
 
 .info-value {
@@ -366,27 +390,31 @@ header {
 }
 
 .btn-success-outline {
-    background-color: #1F2124;
+    background: rgba(31, 33, 36, 0.8);
     border: 2px solid #27ae60;
     color: #2ecc71;
     flex-grow: 1;
+    backdrop-filter: blur(5px);
 }
 
 
 .btn-success-outline:hover {
-    background-color: #2c3e50;
+    background: rgba(44, 62, 80, 0.9);
+    transform: translateY(-1px);
 }
 
 .btn-danger-outline {
-    background-color: #1F2124;
-    border: 2px solid #5050a0;
-    color: #bdc3c7;
+    background: rgba(31, 33, 36, 0.8);
+    border: 2px solid #3498db;
+    color: #3498db;
     flex-grow: 1;
+    backdrop-filter: blur(5px);
 }
 
 
 .btn-danger-outline:hover {
-    background-color: #2c3e50;
+    background: rgba(44, 62, 80, 0.9);
+    transform: translateY(-1px);
 }
 
 .customize-body {
@@ -398,18 +426,20 @@ header {
 }
 
 .worm-placeholder {
-    width: 100px;
-    height: 20px;
+    width: 120px;
+    height: 25px;
     background-color: #3498db;
-    border-radius: 10px;
+    border-radius: 15px;
     position: relative;
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
 }
 .worm-placeholder::after {
-    content: '👀';
+    content: '👁️';
     position: absolute;
-    right: -5px;
-    top: -5px;
-
+    right: -8px;
+    top: -8px;
+    font-size: 1.2em;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
 }
 
 .affiliate {
@@ -426,4 +456,32 @@ header {
 .game-stats {
     display: flex;
     justify-content: space-between;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.game-stats > div {
+    text-align: center;
+    flex: 1;
+}
+
+/* Dodatkowe efekty wizualne */
+.panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+/* Animacja dla logo */
+@keyframes glow {
+    0%, 100% { text-shadow: 0 0 20px rgba(240, 185, 11, 0.3); }
+    50% { text-shadow: 0 0 30px rgba(240, 185, 11, 0.6); }
+}
+
+.logo h1 {
+    animation: glow 3s ease-in-out infinite;
 }
